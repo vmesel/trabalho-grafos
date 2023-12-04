@@ -45,3 +45,17 @@ RETURN p1, p2, t
 // Pega todos os jogadores com altura igual a 5'10" e que estudaram na Utah State
 MATCH (p:Player {height: '5-10'})-[:GRADUATED_FROM]->(c:College {name: 'Utah State'})
 RETURN p, c
+
+// Pega as idades mais comuns entre os jogadores
+MATCH (p:Player)
+RETURN p.age, count(*) AS count
+ORDER BY count DESC
+
+// Pega todos os times que estudantes da BYU jogaram
+MATCH (p:Player)-[:GRADUATED_FROM]->(c:College {name: 'Brigham Young'})
+MATCH (p)-[:PLAYS_FOR]->(t:Team)
+RETURN DISTINCT t
+
+// Pega todos os times que tem jogadores que estudaram na Baylor e suas quantidades
+MATCH (t:Team)<-[:PLAYS_FOR]-(p:Player)-[:GRADUATED_FROM]->(c:College {name: 'Baylor'})
+RETURN t.name AS team, count(p) AS playerCount
