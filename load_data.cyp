@@ -1,26 +1,26 @@
 
 // Cria jogadores
-LOAD CSV WITH HEADERS FROM 'file:///nfl.csv' AS row
+LOAD CSV WITH HEADERS FROM 'file:///dados.csv' AS row
 CREATE (:Player {name: row.Player, position: row.Pos, height: row.HT, weight: row.WT, age: row.Age, experience: row.Exp})
 
 // Cria times
-LOAD CSV WITH HEADERS FROM 'file:///nfl.csv' AS row
+LOAD CSV WITH HEADERS FROM 'file:///dados.csv' AS row
 WITH DISTINCT row.Team AS team
 CREATE (:Team {name: team})
 
 // Cria faculdades
-LOAD CSV WITH HEADERS FROM 'file:///nfl.csv' AS row
+LOAD CSV WITH HEADERS FROM 'file:///dados.csv' AS row
 WITH DISTINCT row.College AS college
 CREATE (:College {name: college})
 
 // Relaciona jogador com time
-LOAD CSV WITH HEADERS FROM 'file:///nfl.csv' AS row
+LOAD CSV WITH HEADERS FROM 'file:///dados.csv' AS row
 MATCH (p:Player {name: row.Player})
 MATCH (t:Team {name: row.Team})
 MERGE (p)-[:PLAYS_FOR]->(t)
 
 // Associa jogador com faculdade
-LOAD CSV WITH HEADERS FROM 'file:///nfl.csv' AS row
+LOAD CSV WITH HEADERS FROM 'file:///dados.csv' AS row
 MATCH (p:Player {name: row.Player})
 MATCH (c:College {name: row.College})
 MERGE (p)-[:GRADUATED_FROM]->(c)
@@ -59,3 +59,39 @@ RETURN DISTINCT t
 // Pega todos os times que tem jogadores que estudaram na Baylor e suas quantidades
 MATCH (t:Team)<-[:PLAYS_FOR]-(p:Player)-[:GRADUATED_FROM]->(c:College {name: 'Baylor'})
 RETURN t.name AS team, count(p) AS playerCount
+
+// Dropa grafo player caso exista
+CALL gds.graph.drop('player')
+
+// Cria o grafo
+CALL gds.graph.project(
+    "player",
+    ["Player", "Team", "College"],
+    '*'
+)
+
+// Caminho mais curto para o jogador Kevin Johnson através de todas as relações
+MATCH (source: Player {name:'Kevin Johnson'})
+CALL gds.bfs.stream('player', {
+  sourceNode: source
+})
+YIELD path
+RETURN path
+
+// Caminho mais curto para o jogador Kevin Johnson através das relações de time
+MATCH (source: Player {name:'Kevin Johnson'})
+CALL gds.bfs.stream('player', {
+    sourceNode: source,
+    relationshipTypes: ['PLAYS_FOR']
+}) YIELD path
+return path
+
+// Caminho mais curto para a universidade Brigham Young e todos os nós
+MATCH (source: College {name:'Brigham Young'})
+CALL gds.bfs.stream('player', {
+    sourceNode: source,
+    relationshipTypes: ['PLAYS_FOR']
+}) YIELD path
+return path
+
+
